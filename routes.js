@@ -17,7 +17,7 @@ module.exports = function(Logement, Categorie, Place) {
             }, function(err, data) {
 
                 data.forEach(function(element, index) {
-                    if (index > 28738) {
+                    if (index > 50327) {
                         var logement = new Logement({
                             'id': element[0],
                             'name': element[1],
