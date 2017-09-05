@@ -9,7 +9,7 @@ var app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Mongoose
+// Configuration Mongoose
 var mongoose = require('mongoose');
 var Logement = mongoose.model('Logement', new mongoose.Schema({
     id: Number,
@@ -24,12 +24,30 @@ var Logement = mongoose.model('Logement', new mongoose.Schema({
     nbReviews: Number
 }));
 
+var Categorie = mongoose.model('Categorie', new mongoose.Schema({
+    id: Number,
+    name: String
+}));
+
+var Place = mongoose.model('Place', new mongoose.Schema({
+    id: Number,
+    name: String,
+    address: String,
+    zipCode: Number,
+    latitude: Number,
+    longitude: Number
+}));
+
 mongoose.connect(process.env.MONGODB_URI, function(error) {
     if (error) console.error(error);
     else console.log('mongo connected');
 });
 
-app.use('/', require('./routes')(port));
+// Routes
+
+app.use('/', require('./routes')(Logement, Categorie, Place));
+
+// Lancement
 
 app.listen(port, function() {
     console.log('Running on port ' + port);
