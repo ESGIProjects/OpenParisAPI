@@ -41,7 +41,7 @@ module.exports = function(Logement, Categorie, Place) {
                     }
                 });
 
-                res.status(200).send(firstResult);
+                res.status(200).send("success");
             });
           });
       });
