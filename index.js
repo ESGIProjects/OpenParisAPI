@@ -40,7 +40,15 @@ var Place = mongoose.model('Place', new mongoose.Schema({
 
 mongoose.connect(process.env.MONGODB_URI, function(error) {
     if (error) console.error(error);
-    else console.log('mongo connected');
+    else {
+        console.log('mongo connected');
+
+        // Mise à jour de la base tous les matins
+        var cron = require('node-cron');
+        cron.schedule('*/5 * * * * *', function() {
+            console.log('running task every 5 seconds');
+        });
+    }
 });
 
 // Routes

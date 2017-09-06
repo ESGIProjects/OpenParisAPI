@@ -1,10 +1,12 @@
 module.exports = function(Logement, Categorie, Place) {
     var express = require('express');
     var router = express.Router();
-    var csv = require('csv');
-    var fs = require('fs');
 
-    router.get('/', function(req, res) {
+    
+
+    router.get('/parser', function(req, res) {
+        var csv = require('csv');
+        var fs = require('fs');
 
         fs.readFile('listing.csv', 'utf8', function(err, data){
             if (err) { return console.log(err); }
@@ -49,18 +51,3 @@ module.exports = function(Logement, Categorie, Place) {
 
     return router;
 };
-
-
-
-/***
-id: [0]
-name: [1]
-hostId: [2]
-neighbourhood: [5]
-lat: [6]
-lon: [7]
-roomType: [8]
-price: [9]
-minNights: [10]
-nbReviews: [11]
-*/
