@@ -1,6 +1,7 @@
 // Dépendances
 var express = require('express');
 var bodyParser = require('body-parser');
+var mysql = require('mysql');
 
 var port = process.env.PORT || 8080;
 var app = express();
@@ -9,54 +10,29 @@ var app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Configuration Mongoose
-var mongoose = require('mongoose');
-var Logement = mongoose.model('Logement', new mongoose.Schema({
-    id: Number,
-    name: String,
-    hostId: Number,
-    neighbourhood: String,
-    latitiude: Number,
-    longitude: Number,
-    roomType: String,
-    price: Number,
-    minNights: Number,
-    nbReviews: Number
-}));
-
-var Categorie = mongoose.model('Categorie', new mongoose.Schema({
-    id: Number,
-    name: String
-}));
-
-var Place = mongoose.model('Place', new mongoose.Schema({
-    id: Number,
-    name: String,
-    address: String,
-    zipCode: Number,
-    latitude: Number,
-    longitude: Number
-}));
-
-mongoose.connect(process.env.MONGODB_URI, function(error) {
-    if (error) console.error(error);
-    else {
-        console.log('mongo connected');
-
-        // Mise à jour de la base tous les matins
-        var cron = require('node-cron');
-        cron.schedule('*/5 * * * * *', function() {
-            console.log('running task every 5 seconds');
-        });
-    }
+// Configuration mysql
+var connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'password',
+    database: 'openparis'
 });
 
-// Routes
+connection.connect();
 
-app.use('/', require('./routes')(Logement, Categorie, Place));
+connection.query('SELECT * FROM categories ORDER BY id', function(error, results, fields) {
+    if (error) throw error;
+    results.forEach(function(element, index) {
+        console.log(element.name);
+    });
+});
+
+//connection.end();
+
+// Routes
+app.use('/', require('./routes')(mysql, connection));
 
 // Lancement
-
 app.listen(port, function() {
     console.log('Running on port ' + port);
 });
