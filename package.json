@@ -17,11 +17,13 @@
   },
   "homepage": "https://github.com/ESGIProjects/OpenParisAPI#readme",
   "dependencies": {
+    "async": "^2.5.0",
     "body-parser": "^1.17.2",
     "csv": "^1.1.1",
     "express": "^4.15.4",
     "memcached": "^2.2.2",
     "mysql": "^2.14.1",
+    "mysql-promise": "^4.1.0",
     "node-cron": "^1.2.1",
     "promise": "^8.0.1",
     "request": "^2.81.0"
