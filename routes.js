@@ -128,7 +128,6 @@ module.exports = function(express, mysql, connection) {
 
         // Attraction data placeholder
         var attractions = [12];
-
         var logements = [];
 
         // 2. Get logements corresponding to first parameters
@@ -155,24 +154,24 @@ module.exports = function(express, mysql, connection) {
 
                 // 4. Search for each category
                 var validLogement = true;
+                var attractionsPromises = [];
                 var places = [];
 
                 attractions.forEach(function(placeElement, placeIndex) {
+                    var sql = mysql.format('SELECT * FROM places WHERE cat_id = ? AND latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?', [placeElement, latitudes['s'], latitudes['n'], longitudes['w'], longitudes['e']]);
 
-                var sql = mysql.format('SELECT * FROM places WHERE cat_id = ? AND latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?', [placeElement, latitudes['s'], latitudes['n'], longitudes['w'], longitudes['e']]);
+                    attractionsPromises.push(query(sql));
+                });
 
-                    query(sql).then(function(results) {
+                Promise.all(attractionsPromises).then(values => {
+                    var results = values[0];
 
-                        if (placeIndex == 0) {
-                            places = results;
-                        }
-
-                        if (results.length > 0) {
-
-                        } else {
-                            validLogement = false;
-                        }
-                    });
+                    if (results.length > 0) {
+                        places = results;
+                        console.log(places);
+                    } else {
+                        validLogement = false;
+                    }
                 });
 
                 if (validLogement) {
