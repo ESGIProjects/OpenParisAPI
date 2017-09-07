@@ -11,7 +11,33 @@ module.exports = function(express, mysql, connection) {
 
     router.get('/search', function(req, res) {
 
-        console.log(req.query.priceMin);
+        if (req.query.priceMin === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.priceMax === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.duration === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.neighborhood === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        connection.query(mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?', [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
+            res.status(200).send(results);
+        });
+    });
+
+    router.get('/realSearch', function(req, res) {
+        // 1. Check received data
 
         if (req.query.priceMin === undefined) {
             res.sendStatus(400);
@@ -28,23 +54,133 @@ module.exports = function(express, mysql, connection) {
             return;
         }
 
-        if (req.query.neighbourhood === undefined) {
+        if (req.query.neighborhood === undefined) {
             res.sendStatus(400);
             return;
         }
 
-        connection.query(mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighbourhood = ?', [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighbourhood]), function(error, results, fields) {
-            res.status(200).send(results);
-        });
+        // Attraction data placeholder
+        var attractions = [12]
 
+        // 2. Get logements corresponding to first parameters
+
+        connection.query(mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?', [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
+
+            results.forEach(function(element, index) {
+                // 3. Get lat/lon values on all directions
+                var latitudes = {
+                    'n': getNewLatitude(element.latitude, 1),
+                    'e': parseFloat(element.latitude),
+                    'w': parseFloat(element.latitude),
+                    's': getNewLatitude(element.latitude, -1)
+                };
+
+                var longitudes = {
+                    'n': getNewLongitude(element.longitude, latitudes['n'], 0),
+                    'e': getNewLongitude(element.longitude, latitudes['e'], 1),
+                    'w': getNewLongitude(element.longitude, latitudes['w'], -1),
+                    's': getNewLongitude(element.longitude, latitudes['s'], 0),
+                };
+
+                // 4. Search for each category
+                
+
+
+            });
+            res.sendStatus(200);
+
+
+        });
     });
 
-    router.get('/places', function(req, res) {
+    function getNewLatitude(lat, distance) {
+        var earthRadius = 6378;
+        return parseFloat(lat) + parseFloat(distance / earthRadius) * parseFloat(180/Math.PI);
+    }
 
+    function getNewLongitude(lon, lat, distance) {
+        var earthRadius = 6378;
+        return parseFloat(lon) + parseFloat(distance / earthRadius) * parseFloat(180 / Math.PI) / parseFloat(Math.cos(lat * Math.PI/180));
+    }
+
+    router.get('/places', function(req, res) {
+        if (req.query.latitude === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.longitude === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+            var latitudes = {
+                'n': getNewLatitude(req.query.latitude, 1),
+                'e': parseFloat(req.query.latitude),
+                'w': parseFloat(req.query.latitude),
+                's': getNewLatitude(req.query.latitude, -1)
+            };
+
+            var longitudes = {
+                'n': getNewLongitude(req.query.longitude, latitudes['n'], 0),
+                'e': getNewLongitude(req.query.longitude, latitudes['e'], 1),
+                'w': getNewLongitude(req.query.longitude, latitudes['w'], -1),
+                's': getNewLongitude(req.query.longitude, latitudes['s'], 0),
+            };
+
+        var values = {
+            'latitude': latitudes,
+            'longitude': longitudes
+        };
+
+        res.status(200).send(values);
     });
 
     router.post('/places', function(req, res) {
 
+        if (req.body.name === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.address === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.zipCode === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.latitude === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.longitude === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.catId === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.userId === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        connection.query(mysql.format('INSERT INTO places (name, address, zipCode, latitude, longitude, cat_id, user_id) VALUES(?, ?, ?, ?, ?, ?, ?)', [req.body.name, req.body.address, req.body.zipCode, req.body.latitude, req.body.longitude, req.body.catId, req.body.userId]), function(error, results, fields) {
+            if (error) {
+                console.error(error);
+                res.status(500).send({'message': 'error when inserting'});
+            } else {
+                res.status(201).send({'id': results.insertId});
+            }
+        });
     });
 
     router.get('/update', function(req, res) {
