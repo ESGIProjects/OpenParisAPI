@@ -4,6 +4,7 @@ var bodyParser = require('body-parser');
 var mysql = require('mysql');
 var request = require('request');
 var cron = require('node-cron');
+//var memcached = require('memcached');
 
 var port = process.env.PORT || 8080;
 var app = express();
@@ -22,6 +23,10 @@ var connection = mysql.createConnection({
 
 connection.connect();
 
+// Configuration memcached
+//var Memcached = new Memcached('127.0.0.1:11211');
+
+// Cron task
 cron.schedule('0 0 2 * * *', handle_update);
 
 //connection.end();

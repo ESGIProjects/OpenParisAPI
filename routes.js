@@ -1,4 +1,5 @@
 module.exports = function(express, mysql, connection) {
+    var Promise = require('promise');
     var router = express.Router();
 
     router.post('/login', function(req, res) {
@@ -32,7 +33,7 @@ module.exports = function(express, mysql, connection) {
         }
 
         connection.query(mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?', [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
-            res.status(200).send(results);
+            res.status(200).send({'count': results.length, 'array': results});
         });
     });
 
@@ -60,36 +61,71 @@ module.exports = function(express, mysql, connection) {
         }
 
         // Attraction data placeholder
-        var attractions = [12]
+        var attractions = [12];
+
+        var logements = [];
 
         // 2. Get logements corresponding to first parameters
 
-        connection.query(mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?', [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
+        connection.query(
+            mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?',
+            [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
 
-            results.forEach(function(element, index) {
+            results.forEach(function(logementElement, logementIndex) {
                 // 3. Get lat/lon values on all directions
                 var latitudes = {
-                    'n': getNewLatitude(element.latitude, 1),
-                    'e': parseFloat(element.latitude),
-                    'w': parseFloat(element.latitude),
-                    's': getNewLatitude(element.latitude, -1)
+                    'n': getNewLatitude(logementElement.latitude, 1),
+                    'e': parseFloat(logementElement.latitude),
+                    'w': parseFloat(logementElement.latitude),
+                    's': getNewLatitude(logementElement.latitude, -1)
                 };
 
                 var longitudes = {
-                    'n': getNewLongitude(element.longitude, latitudes['n'], 0),
-                    'e': getNewLongitude(element.longitude, latitudes['e'], 1),
-                    'w': getNewLongitude(element.longitude, latitudes['w'], -1),
-                    's': getNewLongitude(element.longitude, latitudes['s'], 0),
+                    'n': getNewLongitude(logementElement.longitude, latitudes['n'], 0),
+                    'e': getNewLongitude(logementElement.longitude, latitudes['e'], 1),
+                    'w': getNewLongitude(logementElement.longitude, latitudes['w'], -1),
+                    's': getNewLongitude(logementElement.longitude, latitudes['s'], 0),
                 };
 
                 // 4. Search for each category
-                
+                var validLogement = true;
+                var places = [];
 
+                attractions.forEach(function(placeElement, placeIndex) {
+                    connection.query(
+                        mysql.format('SELECT * FROM places WHERE cat_id = ? AND latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?',
+                        [placeElement, latitudes['s'], latitudes['n'], longitudes['w'], longitudes['e']]), function(error, results, fields) {
 
+                        if (placeIndex == 0) {
+                            places = results;
+                            console.log(results);
+                        }
+
+                        if (results.length > 0) {
+
+                        } else {
+                            validLogement = false;
+                        }
+                    });
+                });
+
+                if (validLogement) {
+                    logements.push({
+                        'id': logementElement.id,
+                        'name': logementElement.name,
+                        'hostId': logementElement.hostId,
+                        'neighborhood': logementElement.neighborhood,
+                        'latitude': logementElement.latitude,
+                        'longitude': logementElement.longitude,
+                        'roomType': logementElement.roomType,
+                        'price': logementElement.price,
+                        'minNights': logementElement.minNights,
+                        'nbReviews': logementElement.nbReviews,
+                        'places': places
+                    });
+                }
             });
-            res.sendStatus(200);
-
-
+            res.status(200).send({'count': logements.length, 'array':logements});
         });
     });
 
@@ -114,19 +150,19 @@ module.exports = function(express, mysql, connection) {
             return;
         }
 
-            var latitudes = {
-                'n': getNewLatitude(req.query.latitude, 1),
-                'e': parseFloat(req.query.latitude),
-                'w': parseFloat(req.query.latitude),
-                's': getNewLatitude(req.query.latitude, -1)
-            };
+        var latitudes = {
+            'n': getNewLatitude(req.query.latitude, 1),
+            'e': parseFloat(req.query.latitude),
+            'w': parseFloat(req.query.latitude),
+            's': getNewLatitude(req.query.latitude, -1)
+        };
 
-            var longitudes = {
-                'n': getNewLongitude(req.query.longitude, latitudes['n'], 0),
-                'e': getNewLongitude(req.query.longitude, latitudes['e'], 1),
-                'w': getNewLongitude(req.query.longitude, latitudes['w'], -1),
-                's': getNewLongitude(req.query.longitude, latitudes['s'], 0),
-            };
+        var longitudes = {
+            'n': getNewLongitude(req.query.longitude, latitudes['n'], 0),
+            'e': getNewLongitude(req.query.longitude, latitudes['e'], 1),
+            'w': getNewLongitude(req.query.longitude, latitudes['w'], -1),
+            's': getNewLongitude(req.query.longitude, latitudes['s'], 0),
+        };
 
         var values = {
             'latitude': latitudes,
@@ -187,11 +223,11 @@ module.exports = function(express, mysql, connection) {
         var url = "https://api.paris.fr/api/data/1.0/Equipements/get_categories/?token=be82901c787874a6a855f122e93245eb8955989ba2e172e4e16f4a3648462afe"
 
         request(url, function (error, response, body) {
-          console.log('statusCode:', response && response.statusCode);
-          if (error) console.log('error:', error);
-          else {
-              console.log('body:', body);
-          }
+            console.log('statusCode:', response && response.statusCode);
+            if (error) console.log('error:', error);
+            else {
+                console.log('body:', body);
+            }
         });
 
         res.status(200).send("");
@@ -204,26 +240,26 @@ module.exports = function(express, mysql, connection) {
         fs.readFile('listing.csv', 'utf8', function(err, data){
             if (err) { return console.log(err); }
 
-          csv.parse(data, function(err, data){
-            csv.transform(data, function(data) {
-              return data.map(function(value) {
-                  return value.toUpperCase();
-              });
-            }, function(err, data) {
+            csv.parse(data, function(err, data){
+                csv.transform(data, function(data) {
+                    return data.map(function(value) {
+                        return value.toUpperCase();
+                    });
+                }, function(err, data) {
 
-                data.forEach(function(element, index) {
-                    if (index > 0) {
-                        connection.query(mysql.format('INSERT INTO logements VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [element[0], element[1], element[2], element[5], element[6], element[7], element[8], element[9], element[10], element[11]]), function(error, results, fields) {
-                            if (error) throw error;
-                            console.log(results.insertId);
-                        });
-                    }
+                    data.forEach(function(element, index) {
+                        if (index > 0) {
+                            connection.query(mysql.format('INSERT INTO logements VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [element[0], element[1], element[2], element[5], element[6], element[7], element[8], element[9], element[10], element[11]]), function(error, results, fields) {
+                                if (error) throw error;
+                                console.log(results.insertId);
+                            });
+                        }
+                    });
+
+                    res.status(200).send("success");
                 });
-
-                res.status(200).send("success");
             });
-          });
-      });
+        });
     });
 
     return router;
