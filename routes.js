@@ -163,34 +163,34 @@ module.exports = function(express, mysql, connection) {
                     attractionsPromises.push(query(sql));
                 });
 
-                Promise.all(attractionsPromises).then(values => {
+                Promise.all(attractionsPromises).then(function(values) {
+
                     var results = values[0];
 
                     if (results.length > 0) {
                         places = results;
-                        console.log(places);
                     } else {
                         validLogement = false;
                     }
-                });
 
-                if (validLogement) {
-                    logements.push({
-                        'id': logementElement.id,
-                        'name': logementElement.name,
-                        'hostId': logementElement.hostId,
-                        'neighborhood': logementElement.neighborhood,
-                        'latitude': logementElement.latitude,
-                        'longitude': logementElement.longitude,
-                        'roomType': logementElement.roomType,
-                        'price': logementElement.price,
-                        'minNights': logementElement.minNights,
-                        'nbReviews': logementElement.nbReviews,
-                        'places': places
-                    });
-                }
+                    if (validLogement) {
+                        logements.push({
+                            'id': logementElement.id,
+                            'name': logementElement.name,
+                            'hostId': logementElement.hostId,
+                            'neighborhood': logementElement.neighborhood,
+                            'latitude': logementElement.latitude,
+                            'longitude': logementElement.longitude,
+                            'roomType': logementElement.roomType,
+                            'price': logementElement.price,
+                            'minNights': logementElement.minNights,
+                            'nbReviews': logementElement.nbReviews,
+                            'places': places
+                        });
+                    }
+                    res.status(200).send({'count': logements.length, 'array':logements});
+                });
             });
-            res.status(200).send({'count': logements.length, 'array':logements});
         });
     });
 
