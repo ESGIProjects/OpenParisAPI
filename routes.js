@@ -2,14 +2,6 @@ module.exports = function(express, mysql, connection) {
     var Promise = require('promise');
     var router = express.Router();
 
-    router.post('/login', function(req, res) {
-
-    });
-
-    router.post('/signup', function(req, res) {
-
-    });
-
     function getNewLatitude(lat, distance) {
         var earthRadius = 6378;
         return parseFloat(lat) + parseFloat(distance / earthRadius) * parseFloat(180/Math.PI);
@@ -37,6 +29,42 @@ module.exports = function(express, mysql, connection) {
         }
         return true;
     }
+
+    function categoryArray2String(array) {
+        return array.map(function(x) {
+            return 'cat_id = ' + x;
+        }).join(' OR ');
+    }
+
+    function array2dictKeys(array) {
+
+        var dict = {};
+        
+        array.forEach(function(element) {
+            dict[element] = false;
+        });
+
+        return dict;
+    }
+
+    function isDictAllTrue(dict) {
+        for (var key in dict) {
+            if (dict.hasOwnProperty(key)) {
+                if (!dict[key])
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    router.post('/login', function(req, res) {
+
+    });
+
+    router.post('/signup', function(req, res) {
+
+    });
 
     router.get('/places', function(req, res) {
         if (req.query.latitude === undefined) {
@@ -162,7 +190,6 @@ module.exports = function(express, mysql, connection) {
     });
 
     router.get('/search', function(req, res) {
-        // 1. Check received data
 
         if (req.query.priceMin === undefined) {
             res.sendStatus(400);
@@ -184,19 +211,25 @@ module.exports = function(express, mysql, connection) {
             return;
         }
 
+        if (req.query.attractions === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+
+        var attractions = req.query.attractions.split(',');
+
         var logementSql = mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?',
         [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]);
 
-        var placesSql = mysql.format('SELECT * FROM places WHERE cat_id = 12');
+        var placesSql = mysql.format('SELECT * FROM places WHERE ' + categoryArray2String(attractions));
 
-        var json = [];
+        var json = [];        
 
         query(logementSql).then(function(logements) {
-            query(placesSql).then(function(places) {
+            query(placesSql).then(function(places) {                
 
                 logements.forEach(function(logement, logementIndex) {
-
-                    //console.log("Logement id : " + logementIndex);
 
                     var latitudes = {
                         'n': getNewLatitude(logement.latitude, 1),
@@ -226,19 +259,20 @@ module.exports = function(express, mysql, connection) {
                         'places' : []
                     };
 
+                    var attractionsDict = array2dictKeys(attractions);
+                    
                     places.forEach(function(place, placeIndex) {
-                        //console.log("Place id : " + placeIndex);
 
                         if (place.latitude >= latitudes['s'] && place.latitude <= latitudes['n'] && place.longitude >= longitudes['w'] && place.longitude <= longitudes['e']) {
                             jsonLogement['places'].push(place);
-                        }
-                        
+                            attractionsDict[place.cat_id] = true;
+                        }                        
                     });
 
                     if (jsonLogement['places'].length > 0) {
-                        // On doit vérifier si on a toutes les catégories avant d'add
-
-                        json.push(jsonLogement);
+                        if (isDictAllTrue(attractionsDict)) {
+                            json.push(jsonLogement);
+                        }                        
                     }
                 });
 
