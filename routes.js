@@ -1,6 +1,5 @@
 module.exports = function(express, mysql, connection) {
     var Promise = require('promise');
-    var async = require('async');
     var router = express.Router();
 
     router.post('/login', function(req, res) {
@@ -9,189 +8,6 @@ module.exports = function(express, mysql, connection) {
 
     router.post('/signup', function(req, res) {
 
-    });
-/*
-    router.get('/search', function(req, res) {
-        // 1. Check received data
-
-        if (req.query.priceMin === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.priceMax === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.duration === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.neighborhood === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        // Attraction data placeholder
-        var attractions = [12];
-
-        var logements = [];
-
-        // 2. Get logements corresponding to first parameters
-
-        connection.query(
-            mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?',
-            [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]), function(error, results, fields) {
-
-            results.forEach(function(logementElement, logementIndex) {
-                // 3. Get lat/lon values on all directions
-                var latitudes = {
-                    'n': getNewLatitude(logementElement.latitude, 1),
-                    'e': parseFloat(logementElement.latitude),
-                    'w': parseFloat(logementElement.latitude),
-                    's': getNewLatitude(logementElement.latitude, -1)
-                };
-
-                var longitudes = {
-                    'n': getNewLongitude(logementElement.longitude, latitudes['n'], 0),
-                    'e': getNewLongitude(logementElement.longitude, latitudes['e'], 1),
-                    'w': getNewLongitude(logementElement.longitude, latitudes['w'], -1),
-                    's': getNewLongitude(logementElement.longitude, latitudes['s'], 0),
-                };
-
-                // 4. Search for each category
-                var validLogement = true;
-                var places = [];
-
-                attractions.forEach(function(placeElement, placeIndex) {
-                    connection.query(
-                        mysql.format('SELECT * FROM places WHERE cat_id = ? AND latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?',
-                        [placeElement, latitudes['s'], latitudes['n'], longitudes['w'], longitudes['e']]), function(error, results, fields) {
-
-                        if (placeIndex == 0) {
-                            places = results;
-                            console.log(results);
-                        }
-
-                        if (results.length > 0) {
-
-                        } else {
-                            validLogement = false;
-                        }
-                    });
-                });
-
-                if (validLogement) {
-                    logements.push({
-                        'id': logementElement.id,
-                        'name': logementElement.name,
-                        'hostId': logementElement.hostId,
-                        'neighborhood': logementElement.neighborhood,
-                        'latitude': logementElement.latitude,
-                        'longitude': logementElement.longitude,
-                        'roomType': logementElement.roomType,
-                        'price': logementElement.price,
-                        'minNights': logementElement.minNights,
-                        'nbReviews': logementElement.nbReviews,
-                        'places': places
-                    });
-                }
-            });
-            res.status(200).send({'count': logements.length, 'array':logements});
-        });
-    });
-*/
-    router.get('/psearch', function(req, res) {
-        // 1. Check received data
-
-        if (req.query.priceMin === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.priceMax === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.duration === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        if (req.query.neighborhood === undefined) {
-            res.sendStatus(400);
-            return;
-        }
-
-        // Attraction data placeholder
-        var attractions = [12];
-        var logements = [];
-
-        // 2. Get logements corresponding to first parameters
-        var sql = mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?',
-        [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]);
-
-        query(sql).then(function(results) {
-
-            results.forEach(function(logementElement, logementIndex) {
-                // 3. Get lat/lon values on all directions
-                var latitudes = {
-                    'n': getNewLatitude(logementElement.latitude, 1),
-                    'e': parseFloat(logementElement.latitude),
-                    'w': parseFloat(logementElement.latitude),
-                    's': getNewLatitude(logementElement.latitude, -1)
-                };
-
-                var longitudes = {
-                    'n': getNewLongitude(logementElement.longitude, latitudes['n'], 0),
-                    'e': getNewLongitude(logementElement.longitude, latitudes['e'], 1),
-                    'w': getNewLongitude(logementElement.longitude, latitudes['w'], -1),
-                    's': getNewLongitude(logementElement.longitude, latitudes['s'], 0),
-                };
-
-                // 4. Search for each category
-                var validLogement = true;
-                var attractionsPromises = [];
-                var places = [];
-
-                attractions.forEach(function(placeElement, placeIndex) {
-                    var sql = mysql.format('SELECT * FROM places WHERE cat_id = ? AND latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?', [placeElement, latitudes['s'], latitudes['n'], longitudes['w'], longitudes['e']]);
-
-                    attractionsPromises.push(query(sql));
-                });
-
-                Promise.all(attractionsPromises).then(function(values) {
-
-                    var results = values[0];
-
-                    if (results.length > 0) {
-                        places = results;
-                    } else {
-                        validLogement = false;
-                    }
-
-                    if (validLogement) {
-                        logements.push({
-                            'id': logementElement.id,
-                            'name': logementElement.name,
-                            'hostId': logementElement.hostId,
-                            'neighborhood': logementElement.neighborhood,
-                            'latitude': logementElement.latitude,
-                            'longitude': logementElement.longitude,
-                            'roomType': logementElement.roomType,
-                            'price': logementElement.price,
-                            'minNights': logementElement.minNights,
-                            'nbReviews': logementElement.nbReviews,
-                            'places': places
-                        });
-                    }
-                    res.status(200).send({'count': logements.length, 'array':logements});
-                });
-            });
-        });
     });
 
     function getNewLatitude(lat, distance) {
@@ -211,6 +27,15 @@ module.exports = function(express, mysql, connection) {
                 resolve(results);
             });
         });
+    }
+
+    function isEmpty(obj) {
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     router.get('/places', function(req, res) {
@@ -331,6 +156,95 @@ module.exports = function(express, mysql, connection) {
                     });
 
                     res.status(200).send("success");
+                });
+            });
+        });
+    });
+
+    router.get('/search', function(req, res) {
+        // 1. Check received data
+
+        if (req.query.priceMin === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.priceMax === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.duration === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.query.neighborhood === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        var logementSql = mysql.format('SELECT * FROM logements WHERE price >= ? AND price <= ? AND minNights <= ? AND neighborhood = ?',
+        [req.query.priceMin, req.query.priceMax, req.query.duration, req.query.neighborhood]);
+
+        var placesSql = mysql.format('SELECT * FROM places WHERE cat_id = 12');
+
+        var json = [];
+
+        query(logementSql).then(function(logements) {
+            query(placesSql).then(function(places) {
+
+                logements.forEach(function(logement, logementIndex) {
+
+                    //console.log("Logement id : " + logementIndex);
+
+                    var latitudes = {
+                        'n': getNewLatitude(logement.latitude, 1),
+                        'e': parseFloat(logement.latitude),
+                        'w': parseFloat(logement.latitude),
+                        's': getNewLatitude(logement.latitude, -1)
+                    };
+    
+                    var longitudes = {
+                        'n': getNewLongitude(logement.longitude, latitudes['n'], 0),
+                        'e': getNewLongitude(logement.longitude, latitudes['e'], 1),
+                        'w': getNewLongitude(logement.longitude, latitudes['w'], -1),
+                        's': getNewLongitude(logement.longitude, latitudes['s'], 0),
+                    };
+
+                    var jsonLogement = {
+                        'id' : logement.id,
+                        'name' : logement.name,
+                        'hostId' : logement.hostId,
+                        'neighborhood' : logement.neighborhood,
+                        'latitude' : logement.latitude,
+                        'longitude' : logement.longitude,
+                        'roomType' : logement.roomType,
+                        'price' : logement.price,
+                        'minNights' : logement.minNights,
+                        'nbReviews' : logement.nbReviews,
+                        'places' : []
+                    };
+
+                    places.forEach(function(place, placeIndex) {
+                        //console.log("Place id : " + placeIndex);
+
+                        if (place.latitude >= latitudes['s'] && place.latitude <= latitudes['n'] && place.longitude >= longitudes['w'] && place.longitude <= longitudes['e']) {
+                            jsonLogement['places'].push(place);
+                        }
+                        
+                    });
+
+                    if (jsonLogement['places'].length > 0) {
+                        // On doit vérifier si on a toutes les catégories avant d'add
+
+                        json.push(jsonLogement);
+                    }
+                });
+
+                res.status(200).send({
+                    'count': json.length,
+                    'array': json
                 });
             });
         });
