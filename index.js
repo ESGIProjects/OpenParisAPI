@@ -33,7 +33,6 @@ cron.schedule('0 59 1 * * *', handle_update);
 
 // Routes
 app.use('/', require('./routes')(express, mysql, connection));
-handle_update2();
 
 // Lancement
 app.listen(port, function() {
