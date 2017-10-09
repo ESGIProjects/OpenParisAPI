@@ -58,12 +58,76 @@ module.exports = function(express, mysql, connection) {
         return true;
     }
 
-    router.post('/login', function(req, res) {
+    router.post('/signup', function(req, res) {
+        
+        if (req.body.mail === undefined) {
+            res.sendStatus(400);
+            return;
+        }
 
+        if (req.body.password === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        // 1. check if user exists
+        connection.query(mysql.format('SELECT COUNT(*) AS count FROM users WHERE mail = ?', [req.body.mail]), function(error, results, fields) {
+            if (error) {
+                res.status(500).send({'message': 'error when inserting user'});
+            }
+            else {
+                if (results[0]['count'] > 0) {
+                    // error user already exists
+                    res.status(500).send({'error': 'An account already exists with this mail address.'});
+                }
+                else {
+                    // 2. Register the user
+                    connection.query(mysql.format('INSERT INTO users (mail, password) VALUES (?, ?)'), [req.body.mail, req.body.password], function(error, results, fields) {
+                        if (error) {
+                            res.status(500).send({'message': 'error when inserting user'});
+                        }
+                        else {
+                            res.status(201).send({'message': 'success', 'id': results['insertId'], 'mail': req.body.mail});
+                        }
+                    });
+                }
+            }
+        });     
     });
 
-    router.post('/signup', function(req, res) {
+    router.post('/signin', function(req, res) {
 
+        if (req.body.mail === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        if (req.body.password === undefined) {
+            res.sendStatus(400);
+            return;
+        }
+
+        connection.query(mysql.format('SELECT * FROM users WHERE mail = ?', [req.body.mail]), function(error, results, fields) {
+            if (error) {
+                console.log(error);
+                res.status(500).send({'message': 'error when selecting user'});                
+            }
+            else {
+                if (results.length == 0) {
+                    // no user
+                    res.status(500).send({'error': 'This user doesn\'t exist.'});
+                }
+                else {
+                    // Check password
+                    if (results[0]['password'] == req.body.password) {
+                        res.status(200).send({'message': 'success', 'id': results[0]['id'], 'mail': results[0]['mail']});
+                    }
+                    else {
+                        res.status(500).send({'error': 'Wrong password.'});
+                    }
+                }
+            }
+        });        
     });
 
     router.get('/places', function(req, res) {
@@ -215,7 +279,6 @@ module.exports = function(express, mysql, connection) {
             res.sendStatus(400);
             return;
         }
-
 
         var attractions = req.query.attractions.split(',');
 
