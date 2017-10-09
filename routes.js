@@ -205,7 +205,7 @@ module.exports = function(express, mysql, connection) {
                 console.error(error);
                 res.status(500).send({'message': 'error when inserting'});
             } else {
-                res.status(201).send({'id': results.insertId});
+                res.status(201).send({'message': 'success', 'id': results.insertId});
             }
         });
     });
